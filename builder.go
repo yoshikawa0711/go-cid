@@ -38,7 +38,7 @@ func (p V0Builder) Sum(data []byte) (Cid, error) {
 	if err != nil {
 		return Undef, err
 	}
-	return Cid{string(hash)}, nil
+	return newCid(string(hash)), nil
 }
 
 func (p V0Builder) GetCodec() uint64 {

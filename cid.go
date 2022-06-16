@@ -95,7 +95,7 @@ func tryNewCidV0(mhash mh.Multihash) (Cid, error) {
 	if dec.Code != mh.SHA2_256 || dec.Length != 32 {
 		return Undef, fmt.Errorf("invalid hash for cidv0 %d-%d", dec.Code, dec.Length)
 	}
-	return Cid{string(mhash)}, nil
+	return newCid(string(mhash)), nil
 }
 
 // NewCidV0 returns a Cid-wrapped multihash.
@@ -135,7 +135,7 @@ func NewCidV1(codecType uint64, mhash mh.Multihash) Cid {
 		panic("copy hash length is inconsistent")
 	}
 
-	return Cid{b.String()}
+	return newCid(b.String())
 }
 
 var (
@@ -148,7 +148,14 @@ var (
 // Cid represents a self-describing content addressed
 // identifier. It is formed by a Version, a Codec (which indicates
 // a multicodec-packed content type) and a Multihash.
-type Cid struct{ str string }
+type Cid struct {
+	str   string
+	param string
+}
+
+func newCid(str string) Cid {
+	return Cid{str, ""}
+}
 
 // Undef can be used to represent a nil or undefined Cid, using Cid{}
 // directly is also acceptable.
@@ -607,7 +614,7 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 			return 0, Undef, err
 		}
 
-		return 34, Cid{string(h)}, nil
+		return 34, newCid(string(h)), nil
 	}
 
 	vers, n, err := varint.FromUvarint(data)
@@ -631,7 +638,7 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 
 	l := n + cn + mhnr
 
-	return l, Cid{string(data[0:l])}, nil
+	return l, newCid(string(data[0:l])), nil
 }
 
 func toBufByteReader(r io.Reader, dst []byte) *bufByteReader {
@@ -704,7 +711,7 @@ func CidFromReader(r io.Reader) (int, Cid, error) {
 			return len(br.dst), Undef, err
 		}
 
-		return len(br.dst), Cid{string(h)}, nil
+		return len(br.dst), newCid(string(h)), nil
 	}
 
 	if vers != 1 {
@@ -767,5 +774,5 @@ func CidFromReader(r io.Reader) (int, Cid, error) {
 		return len(br.dst), Undef, err
 	}
 
-	return len(br.dst), Cid{string(br.dst)}, nil
+	return len(br.dst), newCid(string(br.dst)), nil
 }
