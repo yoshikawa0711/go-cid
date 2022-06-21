@@ -168,6 +168,14 @@ func (c Cid) Defined() bool {
 	return c.str != ""
 }
 
+func (c *Cid) SetParam(p string) {
+	c.param = p
+}
+
+func (c Cid) GetParam() string {
+	return c.param
+}
+
 // Parse is a short-hand function to perform Decode, Cast etc... on
 // a generic interface{} type.
 func Parse(v interface{}) (Cid, error) {
