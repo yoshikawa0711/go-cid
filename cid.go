@@ -176,6 +176,10 @@ func (c Cid) GetParam() string {
 	return c.param
 }
 
+func (c Cid) GetParamBytes() []byte {
+	return []byte(c.param)
+}
+
 // Parse is a short-hand function to perform Decode, Cast etc... on
 // a generic interface{} type.
 func Parse(v interface{}) (Cid, error) {
