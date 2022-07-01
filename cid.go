@@ -626,7 +626,22 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 			return 0, Undef, err
 		}
 
-		return 34, newCid(string(h)), nil
+		l := 34
+		c := newCid(string(h))
+		if len(data) > 34 {
+			pn, p, err := paramFromBytes(data[34:])
+			if err != nil {
+				return 0, Undef, err
+			}
+
+			l += pn
+			c.SetParam(p)
+		}
+
+		if c.param != "" {
+			fmt.Println("[Print Debug]Cid in CidFromBytes() is " + c.String() + "&" + c.GetParam())
+		}
+		return l, c, nil
 	}
 
 	vers, n, err := varint.FromUvarint(data)
@@ -650,7 +665,28 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 
 	l := n + cn + mhnr
 
-	return l, newCid(string(data[0:l])), nil
+	c := newCid(string(data[0:l]))
+	if len(data) > 36 {
+		pn, p, err := paramFromBytes(data[36:])
+		if err != nil {
+			return 0, Undef, err
+		}
+
+		l += pn
+		c.SetParam(p)
+	}
+
+	if c.param != "" {
+		fmt.Println("[Print Debug]Cid in CidFromBytes() is " + c.String() + "&" + c.GetParam())
+	}
+	return l, c, nil
+}
+
+func paramFromBytes(data []byte) (int, string, error) {
+	l := len(data)
+	p := string(data)
+
+	return l, p, nil
 }
 
 func toBufByteReader(r io.Reader, dst []byte) *bufByteReader {
