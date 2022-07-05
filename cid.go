@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	mbase "github.com/multiformats/go-multibase"
@@ -178,6 +179,38 @@ func (c Cid) GetParam() string {
 
 func (c Cid) GetParamBytes() []byte {
 	return []byte(c.param)
+}
+
+func (c Cid) IsExistResizeCid() (bool, Cid) {
+	linkstore, err := os.Open("linkstore")
+	if os.IsNotExist(err) {
+		return false, Undef
+	}
+	defer linkstore.Close()
+
+	listfile, err := os.ReadFile("linkstore")
+	if err != nil {
+		return false, Undef
+	}
+
+	list := string(listfile)
+	lines := strings.Split(list, "\n")
+
+	for _, v := range lines {
+		pathlist := strings.Split(v, ":")
+
+		if err != nil {
+			return false, Undef
+		}
+
+		if c.StringWithParam() == pathlist[0] {
+			fmt.Println("[Print Debug]Cid with param: " + c.StringWithParam())
+			fmt.Println(pathlist[0])
+			return true, newCid(pathlist[1])
+		}
+	}
+
+	return false, Undef
 }
 
 // Parse is a short-hand function to perform Decode, Cast etc... on
@@ -337,6 +370,10 @@ func (c Cid) String() string {
 	default:
 		panic("not possible to reach this point")
 	}
+}
+
+func (c Cid) StringWithParam() string {
+	return c.String() + "&" + c.param
 }
 
 // String returns the string representation of a Cid
