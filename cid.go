@@ -203,10 +203,14 @@ func (c Cid) IsExistResizeCid() (bool, Cid) {
 			return false, Undef
 		}
 
-		if c.StringWithParam() == pathlist[0] {
-			fmt.Println("[Print Debug]Cid with param: " + c.StringWithParam())
-			fmt.Println(pathlist[0])
-			return true, newCid(pathlist[1])
+		if "/ipfs/"+c.StringWithParam() == pathlist[0] {
+			str := strings.Split(pathlist[1], "/")[2]
+			newcid, err := Decode(str)
+			if err != nil {
+				return false, Undef
+			}
+
+			return true, newcid
 		}
 	}
 
