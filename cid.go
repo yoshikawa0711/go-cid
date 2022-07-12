@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	mbase "github.com/multiformats/go-multibase"
@@ -150,12 +151,17 @@ var (
 // identifier. It is formed by a Version, a Codec (which indicates
 // a multicodec-packed content type) and a Multihash.
 type Cid struct {
-	str   string
-	param string
+	str     string
+	param   string
+	request string
 }
 
 func newCid(str string) Cid {
-	return Cid{str, ""}
+	return Cid{
+		str:     str,
+		param:   "",
+		request: "",
+	}
 }
 
 // Undef can be used to represent a nil or undefined Cid, using Cid{}
@@ -179,6 +185,31 @@ func (c Cid) GetParam() string {
 
 func (c Cid) GetParamBytes() []byte {
 	return []byte(c.param)
+}
+
+func (c *Cid) SetRequest(r string) {
+	c.request = r
+}
+
+func (c Cid) GetRequest() string {
+	return c.request
+}
+
+func (c Cid) GetRequestCid() (Cid, error) {
+	cidstr, param := SeparateParameter(c.request)
+	cid, err := Parse(cidstr)
+	if err != nil {
+		return Undef, err
+	}
+
+	if param != "" {
+		param, err = OrganizeParameter(param)
+		if err != nil {
+			return Undef, err
+		}
+		cid.SetParam(param)
+	}
+	return cid, nil
 }
 
 func (c Cid) IsExistResizeCid() (bool, Cid) {
@@ -207,6 +238,7 @@ func (c Cid) IsExistResizeCid() (bool, Cid) {
 			str := strings.Split(pathlist[1], "/")[2]
 			newcid, err := Decode(str)
 			if err != nil {
+				fmt.Println("[Print Debug] Decode error")
 				return false, Undef
 			}
 
@@ -864,4 +896,69 @@ func CidFromReader(r io.Reader) (int, Cid, error) {
 	}
 
 	return len(br.dst), newCid(string(br.dst)), nil
+}
+
+func SeparateParameter(str string) (string, string) {
+	parts := strings.Split(str, "&")
+	if len(parts) >= 2 {
+		return parts[0], parts[1]
+	} else {
+		return parts[0], ""
+	}
+}
+
+func SplitParameter(params string) (map[string]int, error) {
+	m := make(map[string]int)
+
+	parts := strings.Split(params, ",")
+
+	for _, v := range parts {
+		param := strings.Split(v, "=")
+
+		if len(param) != 2 {
+			return nil, fmt.Errorf("invalid parameter: %s", v)
+		}
+
+		if param[0] == "w" || param[0] == "h" {
+
+			if _, ok := m[param[0]]; !ok {
+				var err error
+
+				m[param[0]], err = strconv.Atoi(param[1])
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				return nil, fmt.Errorf("invalid parameter: %s: already exist", param[0])
+			}
+
+		} else {
+			return nil, fmt.Errorf("invalid parameter: %s is not supported", param[0])
+		}
+	}
+
+	return m, nil
+
+}
+
+func OrganizeParameter(param string) (string, error) {
+	m, err := SplitParameter(param)
+	if err != nil {
+		return "", err
+	}
+
+	var newparam string
+	if v, ok := m["w"]; ok {
+		newparam += "w=" + fmt.Sprint(v)
+	}
+
+	if v, ok := m["h"]; ok {
+		if newparam != "" {
+			newparam += ","
+		}
+		newparam += "h=" + fmt.Sprint(v)
+	}
+
+	return newparam, nil
 }
