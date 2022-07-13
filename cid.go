@@ -409,7 +409,13 @@ func (c Cid) String() string {
 }
 
 func (c Cid) StringWithParam() string {
-	return c.String() + "&" + c.param
+	str := c.String()
+
+	if c.param != "" {
+		str += "&" + c.param
+	}
+
+	return str
 }
 
 // String returns the string representation of a Cid
@@ -702,13 +708,16 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 		l := 34
 		c := newCid(string(h))
 		if len(data) > 34 {
-			pn, p, err := paramFromBytes(data[34:])
+			str := string(data[34:])
+
+			p, r, err := splitParamAndRequest(str)
 			if err != nil {
 				return 0, Undef, err
 			}
-
-			l += pn
 			c.SetParam(p)
+			c.SetRequest(r)
+
+			l += len(data[l:])
 		}
 
 		if c.param != "" {
@@ -739,14 +748,17 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 	l := n + cn + mhnr
 
 	c := newCid(string(data[0:l]))
-	if len(data) > 36 {
-		pn, p, err := paramFromBytes(data[36:])
+	if len(data) > l {
+		str := string(data[l:])
+
+		p, r, err := splitParamAndRequest(str)
 		if err != nil {
 			return 0, Undef, err
 		}
-
-		l += pn
 		c.SetParam(p)
+		c.SetRequest(r)
+
+		l += len(data[l:])
 	}
 
 	if c.param != "" {
@@ -755,11 +767,20 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 	return l, c, nil
 }
 
-func paramFromBytes(data []byte) (int, string, error) {
-	l := len(data)
-	p := string(data)
+func splitParamAndRequest(str string) (string, string, error) {
+	parts := strings.Split(str, "&")
+	var param, request string
+	switch len(parts) {
+	case 2:
+		param = parts[0]
+		request = parts[1]
+	case 1:
+		param = parts[0]
+	default:
+		return "", "", fmt.Errorf("invalid param and request: %s", str)
+	}
 
-	return l, p, nil
+	return param, request, nil
 }
 
 func toBufByteReader(r io.Reader, dst []byte) *bufByteReader {
