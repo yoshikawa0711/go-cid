@@ -238,7 +238,6 @@ func (c Cid) IsExistResizeCid() (bool, Cid) {
 			str := strings.Split(pathlist[1], "/")[2]
 			newcid, err := Decode(str)
 			if err != nil {
-				fmt.Println("[Print Debug] Decode error")
 				return false, Undef
 			}
 
@@ -720,9 +719,6 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 			l += len(data[l:])
 		}
 
-		if c.param != "" {
-			fmt.Println("[Print Debug]Cid in CidFromBytes() is " + c.String() + "&" + c.GetParam())
-		}
 		return l, c, nil
 	}
 
@@ -761,9 +757,6 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 		l += len(data[l:])
 	}
 
-	if c.param != "" {
-		fmt.Println("[Print Debug]Cid in CidFromBytes() is " + c.String() + "&" + c.GetParam())
-	}
 	return l, c, nil
 }
 
@@ -771,15 +764,13 @@ func splitParamAndRequest(str string) (string, string, error) {
 	parts := strings.Split(str, "&")
 	var param, request string
 	switch len(parts) {
-	case 2:
-		param = parts[0]
-		request = parts[1]
+	case 3:
+		request = parts[1] + "&" + parts[2]
 	case 1:
 		param = parts[0]
 	default:
 		return "", "", fmt.Errorf("invalid param and request: %s", str)
 	}
-
 	return param, request, nil
 }
 
