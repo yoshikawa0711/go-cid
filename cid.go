@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	mbase "github.com/multiformats/go-multibase"
@@ -95,7 +96,7 @@ func tryNewCidV0(mhash mh.Multihash) (Cid, error) {
 	if dec.Code != mh.SHA2_256 || dec.Length != 32 {
 		return Undef, fmt.Errorf("invalid hash for cidv0 %d-%d", dec.Code, dec.Length)
 	}
-	return Cid{string(mhash)}, nil
+	return newCid(string(mhash)), nil
 }
 
 // NewCidV0 returns a Cid-wrapped multihash.
@@ -135,7 +136,7 @@ func NewCidV1(codecType uint64, mhash mh.Multihash) Cid {
 		panic("copy hash length is inconsistent")
 	}
 
-	return Cid{b.String()}
+	return newCid(b.String())
 }
 
 var (
@@ -148,11 +149,29 @@ var (
 // Cid represents a self-describing content addressed
 // identifier. It is formed by a Version, a Codec (which indicates
 // a multicodec-packed content type) and a Multihash.
-type Cid struct{ str string }
+type Cid struct {
+	str   string
+	param string
+}
 
 // Undef can be used to represent a nil or undefined Cid, using Cid{}
 // directly is also acceptable.
 var Undef = Cid{}
+
+func newCid(str string) Cid {
+	return Cid{
+		str:   str,
+		param: "",
+	}
+}
+
+func (c *Cid) SetParam(param string) {
+	c.param = param
+}
+
+func (c Cid) GetParam() string {
+	return c.param
+}
 
 // Defined returns true if a Cid is defined
 // Calling any other methods on an undefined Cid will result in
@@ -327,6 +346,10 @@ func (c Cid) String() string {
 	default:
 		panic("not possible to reach this point")
 	}
+}
+
+func (c Cid) StringWithParam() string {
+	return c.String() + "&" + c.param
 }
 
 // String returns the string representation of a Cid
@@ -616,7 +639,7 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 			return 0, Undef, err
 		}
 
-		return 34, Cid{string(h)}, nil
+		return 34, newCid(string(h)), nil
 	}
 
 	vers, n, err := varint.FromUvarint(data)
@@ -640,7 +663,7 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 
 	l := n + cn + mhnr
 
-	return l, Cid{string(data[0:l])}, nil
+	return l, newCid(string(data[0:l])), nil
 }
 
 func toBufByteReader(r io.Reader, dst []byte) *bufByteReader {
@@ -713,7 +736,7 @@ func CidFromReader(r io.Reader) (int, Cid, error) {
 			return len(br.dst), Undef, err
 		}
 
-		return len(br.dst), Cid{string(h)}, nil
+		return len(br.dst), newCid(string(h)), nil
 	}
 
 	if vers != 1 {
@@ -776,5 +799,37 @@ func CidFromReader(r io.Reader) (int, Cid, error) {
 		return len(br.dst), Undef, err
 	}
 
-	return len(br.dst), Cid{string(br.dst)}, nil
+	return len(br.dst), newCid(string(br.dst)), nil
+}
+
+func (c Cid) IsExistResizeCid() (bool, Cid) {
+	linkstore, err := os.Open("linkstore")
+	if os.IsNotExist(err) {
+		return false, Undef
+	}
+	defer linkstore.Close()
+
+	listfile, err := os.ReadFile("linkstore")
+	if err != nil {
+		return false, Undef
+	}
+
+	list := string(listfile)
+	lines := strings.Split(list, "\n")
+
+	for _, v := range lines {
+		pathlist := strings.Split(v, ":")
+
+		if "/ipfs/"+c.StringWithParam() == pathlist[0] {
+			str := strings.Split(pathlist[1], "/")[2]
+			newcid, err := Decode(str)
+			if err != nil {
+				return false, Undef
+			}
+
+			return true, newcid
+		}
+	}
+
+	return false, Undef
 }
