@@ -495,7 +495,10 @@ func (c Cid) MarshalJSON() ([]byte, error) {
 
 // KeyString returns the binary representation of the Cid as a string
 func (c Cid) KeyString() string {
-	return c.str + c.param
+	if c.param != "" {
+		return c.str + c.param
+	}
+	return c.str
 }
 
 // Loggable returns a Loggable (as defined by
