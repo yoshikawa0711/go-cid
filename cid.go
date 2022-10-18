@@ -655,10 +655,6 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 			c.SetParam(p)
 		}
 
-		if c.param != "" {
-			fmt.Println("cid from bytes is " + c.StringWithParam())
-		}
-
 		return l, c, nil
 	}
 
@@ -693,10 +689,6 @@ func CidFromBytes(data []byte) (int, Cid, error) {
 
 		l += pn
 		c.SetParam(p)
-	}
-
-	if c.param != "" {
-		fmt.Println("cid from bytes is " + c.StringWithParam())
 	}
 
 	return l, c, nil
