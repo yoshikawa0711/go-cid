@@ -862,6 +862,8 @@ func (c Cid) IsExistResizeCid() (bool, Cid) {
 				return false, Undef
 			}
 
+			fmt.Println("Get new CID: " + fmt.Sprint(newcid))
+
 			return true, newcid
 		}
 	}
